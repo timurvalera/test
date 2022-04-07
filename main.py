@@ -11,3 +11,8 @@ class Book:
 
     def __str__(self):
         return f'{self.id} - "{self.name}" ({self.author})'
+
+
+def main():
+    book = Book(0, 'a', 12, 'a')
+    print(book.id)
