@@ -1,4 +1,7 @@
+import os.path
+import pickle
 from typing import List
+
 
 class Book:
     def __init__(self, id: int, name: str, pages: int, author: str):
@@ -6,7 +9,7 @@ class Book:
         self.name = name
         self.pages = pages
         self.author = author
-        self.owner = None
+        self.owner = ''
 
     def __str__(self):
         return f'{self.id} - "{self.name}" ({self.author})'
@@ -31,10 +34,6 @@ class Library:
     def add_user(self, name: str, surname: str, age: int):
         """
         Добавление пользователя в бд
-
-        :param name: имя
-        :param surname: фамилия
-        :param age: возраст
         """
         id = 1
         if self.users:
@@ -53,6 +52,12 @@ class Library:
         print('Такого id нет')
         return None
 
+    def load_users(self, users: List[User]):
+        """
+        Загрузка пользователей
+        """
+        self.users = users
+
     def get_books_of_user(self, user_id: int):
         """
         Эта функция возвращает список книг, находящихся у пользователя
@@ -62,7 +67,7 @@ class Library:
             return []
         result = []
         for book in self.books:
-            if book.owner == user:
+            if book.owner == user.name:
                 result.append(book)
         return result
 
@@ -79,12 +84,18 @@ class Library:
             id = self.books[-1].id + 1
         self.books.append(Book(id, name, pages, author))
 
+    def load_books(self, books: List[Book]):
+        """
+        Загрузка книг
+        """
+        self.books = books
+
     def show_all_books(self):
         """
         Эта функция показывает все свободные книги
         """
         for book in self.books:
-            if book.owner is None:
+            if book.owner == '':
                 print(book)
 
     def get_small_book(self):
@@ -126,7 +137,7 @@ class Library:
         Получение книги по названию
         """
         for book in self.books:
-            if book.owner is None:
+            if book.owner == '':
                 if book.name == name:
                     return book
         print('Книги с таким названием нет')
@@ -139,7 +150,7 @@ class Library:
         book = self.get_book_with_name(book_name)
         user = self.get_user_with_id(user_id)
         if book and user:
-            book.owner = user
+            book.owner = user.name
 
     def get_book(self, book_name: str, user_id: int):
         """
@@ -148,11 +159,46 @@ class Library:
         books = self.get_books_of_user(user_id)
         for book in books:
             if book.name == book_name:
-                book.owner = None
+                book.owner = ''
+
+
+def load_data(library: Library):
+    if os.path.exists('database_users.dat'):
+        with open('database_users.dat', 'rb') as f:
+            size = pickle.load(f)
+            users = []
+            for i in range(size):
+                users.append(pickle.load(f))
+            library.load_users(users)
+    else:
+        with open('database_users.dat', 'wb') as f:
+            pickle.dump(0, f)
+
+    if os.path.exists('database_books.dat'):
+        with open('database_books.dat', 'rb') as f:
+            size = pickle.load(f)
+            books = []
+            for i in range(size):
+                books.append(pickle.load(f))
+            library.load_books(books)
+    else:
+        with open('database_books.dat', 'wb') as f:
+            pickle.dump(0, f)
+    return library
+
+
+def save(file_name: str, data: List):
+    """
+    Сохранение каких-либо данных
+    """
+    with open(file_name, 'wb') as f:
+        pickle.dump(len(data), f)
+        for item in data:
+            pickle.dump(item, f)
 
 
 def main():
-    library = Library()
+    library = load_data(Library())
     end = False
     while not end:
         print('''Доступные команды:
@@ -174,6 +220,7 @@ def main():
                 pages = int(input('Количество страниц в книге: '))
                 author = input('Автор книги: ')
                 library.add_book(name, pages, author)
+                save('database_books.dat', library.books)
             except ValueError:
                 print('Количество страниц должно быть числом')
         elif cmd == '2':
@@ -182,6 +229,7 @@ def main():
                 surname = input('Фамилия пользователя: ')
                 age = int(input('Возраст пользователя: '))
                 library.add_user(name, surname, age)
+                save('database_users.dat', library.users)
             except ValueError:
                 print('Возраст пользователя должен быть числом')
         elif cmd == '3':
@@ -195,6 +243,7 @@ def main():
                 name = input('Название книги: ')
                 user_id = int(input('ID пользователя: '))
                 library.give_book(name, user_id)
+                save('database_books.dat', library.books)
             except ValueError:
                 print('ID должен быть числом')
         elif cmd == '7':
@@ -202,6 +251,7 @@ def main():
                 name = input('Название книги: ')
                 user_id = int(input('ID пользователя: '))
                 library.get_book(name, user_id)
+                save('database_books.dat', library.books)
             except ValueError:
                 print('ID должен быть числом')
         elif cmd == '8':
@@ -214,3 +264,6 @@ def main():
                 print('ID должен быть числом')
         print()
 
+
+if __name__ == '__main__':
+    main()
